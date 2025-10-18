@@ -19,7 +19,6 @@ create table usuario(
 	activo BOOLEAN NOT NULL DEFAULT TRUE, -- por defecto está activo
     -- la fecha y hora se establece automáticamente al crear el usuario
 	fechaRegistro DATETIME DEFAULT CURRENT_TIMESTAMP 
-	-- credencial CredencialAcceso referencia 1a1 a B 
 );
 
 -- creación de tabla credencial
