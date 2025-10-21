@@ -187,7 +187,7 @@ INSERT INTO Semilla_Apellido (ID, Apellido) VALUES
 DELIMITER //
 
 CREATE PROCEDURE GenerarUsuariosYCredenciales(IN cantidad INT)
--- CREATE PROCEDURE CargaMasivaUsuarios(IN cantidad INT)
+
 BEGIN
     -- Declaramos una variable de sesión para llevar el conteo de forma secuencial
     SET @row_number = COALESCE((SELECT MAX(id) FROM usuario), 0);
@@ -219,7 +219,7 @@ BEGIN
         information_schema.tables AS t1
     CROSS JOIN
         information_schema.tables AS t2
-    -- Asegúrate de que las tablas semilla tengan suficientes combinaciones
+    -- Hay que asegurarse de que las tablas semilla tengan suficientes combinaciones
     CROSS JOIN Semilla_Nombre sn
     CROSS JOIN Semilla_Apellido sa
     -- La clave es el LIMIT
