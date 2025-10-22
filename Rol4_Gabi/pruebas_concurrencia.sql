@@ -16,7 +16,7 @@ SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
 -- Cambiar a REPEATABLE READ  
 SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
 
--- 3. TABLA PARA LOGS DE ERRORES Y AUDITORÍA (se necesita crear antes de usarla)
+-- 3. TABLA PARA LOGS DE ERRORES Y AUDITORÍA
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS log_errores (
@@ -31,27 +31,29 @@ CREATE TABLE IF NOT EXISTS log_errores (
 DELIMITER //
 
 -- Procedimiento para actualizar perfil con manejo de deadlock
-DROP PROCEDURE IF EXISTS sp_actualizar_perfil_completo;
+DROP PROCEDURE IF EXISTS sp_actualizar_perfil_completo//
 CREATE PROCEDURE sp_actualizar_perfil_completo(
     IN p_id_usuario BIGINT,
     IN p_nuevo_nombre VARCHAR(50),
     IN p_nuevo_apellido VARCHAR(50),
-    IN p_nuevo_email VARCHAR(120)
+    IN p_nuevo_email VARCHAR(120),
+    IN p_intentos INT
 )
 BEGIN
-    DECLARE v_intentos INT DEFAULT 0;
     DECLARE v_exito BOOLEAN DEFAULT FALSE;
     DECLARE v_email_existe INT DEFAULT 0;
+    DECLARE v_proximo_intento INT DEFAULT p_intentos + 1;
 
     DECLARE EXIT HANDLER FOR 1213 -- Deadlock
     BEGIN
-        SET v_intentos = v_intentos + 1;
-        IF v_intentos <= 2 THEN
-            DO SLEEP(0.1); -- espera definida para antes de reintentar
-            CALL sp_actualizar_perfil_completo(p_id_usuario, p_nuevo_nombre, p_nuevo_apellido, p_nuevo_email);
+        IF v_proximo_intento <= 2 THEN
+            DO SLEEP(0.1);
+            CALL sp_actualizar_perfil_completo(
+                p_id_usuario, p_nuevo_nombre, p_nuevo_apellido, p_nuevo_email, v_proximo_intento
+            );
         ELSE
-            INSERT INTO log_errores (descripcion, fecha) 
-            VALUES ('Deadlock en actualización de perfil después de 2 reintentos', NOW());
+            INSERT INTO log_errores (descripcion) 
+            VALUES (CONCAT('Deadlock en actualización de perfil. Usuario: ', p_id_usuario));
             SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Error: No se pudo actualizar el perfil después de múltiples intentos';
         END IF;
     END;
@@ -75,16 +77,16 @@ BEGIN
 
         IF ROW_COUNT() > 0 THEN
             SET v_exito = TRUE;
-            INSERT INTO log_errores (descripcion, fecha)
-            VALUES (CONCAT('Perfil actualizado para usuario: ', p_id_usuario), NOW());
+            INSERT INTO log_errores (descripcion)
+            VALUES (CONCAT('Perfil actualizado para usuario: ', p_id_usuario));
         ELSE
-            INSERT INTO log_errores (descripcion, fecha)
-            VALUES ('No se pudo actualizar el perfil del usuario', NOW());
+            INSERT INTO log_errores (descripcion)
+            VALUES ('No se pudo actualizar el perfil del usuario');
             SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Error: No se pudo actualizar el perfil';
         END IF;
     ELSE
-        INSERT INTO log_errores (descripcion, fecha)
-        VALUES ('Email ya existe para otro usuario', NOW());
+        INSERT INTO log_errores (descripcion)
+        VALUES ('Email ya existe para otro usuario');
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Error: El email ya está en uso por otro usuario';
     END IF;
 
@@ -97,26 +99,27 @@ BEGIN
 END //
 
 -- Procedimiento para cambiar credenciales con manejo de deadlock
-DROP PROCEDURE IF EXISTS sp_cambiar_credenciales;
+DROP PROCEDURE IF EXISTS sp_cambiar_credenciales//
 CREATE PROCEDURE sp_cambiar_credenciales(
     IN p_id_usuario BIGINT,
     IN p_nueva_contrasena VARCHAR(255),
     IN p_nuevo_salt VARCHAR(64),
-    IN p_requiere_reset BOOLEAN
+    IN p_requiere_reset BOOLEAN,
+    IN p_intentos INT
 )
 BEGIN
-    DECLARE v_intentos INT DEFAULT 0;
     DECLARE v_usuario_activo BOOLEAN DEFAULT FALSE;
+    DECLARE v_proximo_intento INT DEFAULT p_intentos + 1;
 
     DECLARE EXIT HANDLER FOR 1213
     BEGIN
-        SET v_intentos = v_intentos + 1;
-        IF v_intentos <= 2 THEN
+        IF v_proximo_intento <= 2 THEN
+            ROLLBACK; 
             DO SLEEP(0.1);
-            CALL sp_cambiar_credenciales(p_id_usuario, p_nueva_contrasena, p_nuevo_salt, p_requiere_reset);
+            CALL sp_cambiar_credenciales(p_id_usuario, p_nueva_contrasena, p_nuevo_salt, p_requiere_reset, v_proximo_intento);
         ELSE
-            INSERT INTO log_errores (descripcion, fecha) 
-            VALUES ('Deadlock en cambio de credenciales', NOW());
+            INSERT INTO log_errores (descripcion) 
+            VALUES (CONCAT('Deadlock en cambio de credenciales para usuario: ', p_id_usuario));
             SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Error en cambio de credenciales después de múltiples intentos';
         END IF;
     END;
@@ -137,22 +140,21 @@ BEGIN
         WHERE id_usuario = p_id_usuario 
           AND eliminado = FALSE;
 
-        INSERT INTO log_errores (descripcion, fecha)
-        VALUES (CONCAT('Credenciales actualizadas para usuario: ', p_id_usuario), NOW());
+        INSERT INTO log_errores (descripcion)
+        VALUES (CONCAT('Credenciales actualizadas para usuario: ', p_id_usuario));
 
         COMMIT;
         SELECT 'Credenciales actualizadas exitosamente' AS resultado;
     ELSE
         ROLLBACK;
-        INSERT INTO log_errores (descripcion, fecha)
-        VALUES ('Usuario inactivo o no encontrado para cambio de credenciales', NOW());
+        INSERT INTO log_errores (descripcion)
+        VALUES ('Usuario inactivo o no encontrado para cambio de credenciales');
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Error: Usuario inactivo o no encontrado';
     END IF;
 END //
 
 DELIMITER ;
 
--- TO DO: Se encuentra comentado para volver a probar y corregir errores
 -- 4. SIMULACIÓN DE DEADLOCK (ejecutar en 2 sesiones distintas)
 -- =============================================
 
@@ -206,8 +208,8 @@ DELIMITER ;
 -- 6. PRUEBAS DE LOS PROCEDIMIENTOS
 -- =============================================
 
-CALL sp_actualizar_perfil_completo(1, 'Juan Carlos', 'Perez Gonzalez', 'juan.carlos@email.com');
-CALL sp_cambiar_credenciales(1, 'nuevo_hash_seguro', 'nuevo_salt_123', FALSE);
+CALL sp_actualizar_perfil_completo(1, 'NuevoNombre', 'NuevoApellido', 'email@test.com', 0);
+CALL sp_cambiar_credenciales(1, 'nueva_pass_hash', 'nuevo_salt', FALSE, 0);
 
 -- Verificar logs
 SELECT * FROM log_errores ORDER BY fecha DESC;
