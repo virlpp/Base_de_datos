@@ -245,30 +245,8 @@ END //
 
 DELIMITER ;
 
--- *********************************************************************************
--- ** LLAMADA **
--- *********************************************************************************
 -- Esto generará 300000 filas en segundos, evitando el time-out
 CALL GenerarUsuariosYCredenciales(300000); 
 
 
 
------------------------------------------------
--- El siguiente bloque solo se debe ejecutar si se quiere vacíar las tablas con las combinaciones
-
--- BLOQUE DE GENERACIÓN DE DATOS DE PRUEBA
-
--- 1. Desactiva temporalmente el chequeo de Claves Foráneas.
---    Esto permite TRUNCATE la tabla 'usuario' (la referenciada) sin fallar.
-SET FOREIGN_KEY_CHECKS = 0;
-
--- 2. Limpieza de Tablas (IMPORTANTE: Mantiene el DROP/CREATE simple)
-TRUNCATE TABLE credencial;
-TRUNCATE TABLE usuario;
-
--- 3. Reactiva el chequeo de Claves Foráneas.
---    Esto es crucial para que los INSERTs en el procedimiento respeten las reglas.
-SET FOREIGN_KEY_CHECKS = 1;
-
--- 4. Ejecuta el procedimiento para poblar las tablas
-CALL GenerarUsuariosYCredenciales(300000);
