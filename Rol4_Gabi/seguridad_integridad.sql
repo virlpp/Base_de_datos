@@ -90,9 +90,9 @@ DELIMITER ;
 
 CREATE USER IF NOT EXISTS 'usuario_lectura'@'localhost' IDENTIFIED BY 'prueba_minimos123';
 
-GRANT SELECT ON usuariocredencial.vista_usuarios_publica TO 'usuario_lectura'@'localhost';
-GRANT SELECT ON usuariocredencial.vista_credenciales_segura TO 'usuario_lectura'@'localhost';
-GRANT EXECUTE ON PROCEDURE usuariocredencial.sp_consultar_usuario_seguro TO 'usuario_lectura'@'localhost';
+GRANT SELECT ON usuariocredencial.vista_usuarios_publica TO 'usuario_lectura'@'%';
+GRANT SELECT ON usuariocredencial.vista_credenciales_segura TO 'usuario_lectura'@'%';
+GRANT EXECUTE ON PROCEDURE usuariocredencial.sp_consultar_usuario_seguro TO 'usuario_lectura'@'%';
 
 SHOW GRANTS FOR 'usuario_lectura'@'localhost';
 
