@@ -1,0 +1,8 @@
+{
+    "java.project.sourcePaths": [
+        "Rol4_Gabi"
+    ],
+    "java.project.referencedLibraries": [
+        "Rol4_Gabi\\lib\\mysql-connector-j-9.5.0.jar"
+    ]
+}
