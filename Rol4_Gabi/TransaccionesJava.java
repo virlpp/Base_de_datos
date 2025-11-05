@@ -117,11 +117,11 @@ public class TransaccionesJava {
     }
     
     public static void main(String[] args) {
-        final String AIVEN_HOST = "mysql-1e724b1f-bd2025.d.aivencloud.com"; 
+        final String AIVEN_HOST = ""; 
         final int AIVEN_PORT = 27115;
-        final String DB_NAME = "usuariocredencial";
-        final String AIVEN_USER = "avnadmin"; 
-        final String AIVEN_PASSWORD = "AVNS_uLwG6vqYyriF_v-PAif";
+        final String DB_NAME = "";
+        final String AIVEN_USER = ""; 
+        final String AIVEN_PASSWORD = "";
 
         final String JDBC_URL = 
             "jdbc:mysql://" + AIVEN_HOST + ":" + AIVEN_PORT + "/" + DB_NAME + 
