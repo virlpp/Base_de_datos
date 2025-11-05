@@ -136,10 +136,10 @@ public class TransaccionesJava {
             transacciones.pruebaAntiInyeccion();
             
             // Consulta segura
-            //transacciones.consultarUsuarioSeguro(1);
+            transacciones.consultarUsuarioSeguro(1);
                         
             // Cambiar credenciales
-            //transacciones.cambiarCredenciales(1, "nuevo_hash_seguro", "nuevo_salt_123", false);
+            transacciones.cambiarCredenciales(1, "nuevo_hash_seguro", "nuevo_salt_123", false);
             
         } catch (SQLException e) {
             e.printStackTrace();
