@@ -18,7 +18,14 @@ create table usuario(
     
 	activo BOOLEAN NOT NULL DEFAULT TRUE, -- por defecto está activo
     -- la fecha y hora se establece automáticamente al crear el usuario
-	fechaRegistro DATETIME DEFAULT CURRENT_TIMESTAMP 
+	fechaRegistro DATETIME DEFAULT CURRENT_TIMESTAMP ,
+    
+    -- Restricción CHECK para que el nombre y apellido solo contengan letras (incluye acentos, ñ, y espacios) 
+	CONSTRAINT chk_nombre_solo_letras 
+	CHECK (nombre REGEXP '^[A-Za-zñÑáéíóúÁÉÍÓÚ\s]+'), 
+	CONSTRAINT chk_apellido_solo_letras 
+	CHECK (apellido REGEXP '^[A-Za-zñÑáéíóúÁÉÍÓÚ\s]+')
+
 );
 
 -- creación de tabla credencial
@@ -37,9 +44,10 @@ create table credencial(
     
     -- clave foránea
     id_usuario BIGINT NOT NULL UNIQUE, -- debe ser del mismo tipo que id en tabla usuario (BIGINT)
-    CONSTRAINT fk_credencial_usuario -- para darle nombre único y descriptivo a la regla que se crea
-		FOREIGN KEY (id_usuario) REFERENCES usuario(id)
-);
+
+	-- Definición de la CLAVE FORÁNEA (FK)
+    CONSTRAINT fk_credencial_usuario
         FOREIGN KEY (id_usuario) 
         REFERENCES usuario(id)
+        ON DELETE CASCADE -- Si el usuario se elimina, su credencial también.
 );
