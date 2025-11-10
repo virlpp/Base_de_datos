@@ -1,6 +1,9 @@
 create database usuariocredencial;
-
 use usuariocredencial;
+
+-- Eliminamos las tablas si ya existen con anterioridad para evitar inconsistencias.
+DROP TABLE IF EXISTS Credencial;
+DROP TABLE IF EXISTS Usuario;
 
 -- creación de tabla usuario
 create table usuario(
