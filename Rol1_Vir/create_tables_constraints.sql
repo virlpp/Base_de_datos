@@ -24,6 +24,8 @@ create table usuario(
 	fechaRegistro DATETIME DEFAULT CURRENT_TIMESTAMP ,
     
     -- Restricción CHECK para que el nombre y apellido solo contengan letras (incluye acentos, ñ, y espacios) 
+	-- En el caso de la documentación de las capturas se utilizaron TRIGGERS para validar esta restricción. 
+	-- El Script de los TRIGGERS se encuentra al final de este documento
 	CONSTRAINT chk_nombre_solo_letras 
 	CHECK (nombre REGEXP '^[A-Za-zñÑáéíóúÁÉÍÓÚ\s]+'), 
 	CONSTRAINT chk_apellido_solo_letras 
@@ -54,3 +56,57 @@ create table credencial(
         REFERENCES usuario(id)
         ON DELETE CASCADE -- Si el usuario se elimina, su credencial también.
 );
+
+
+-- TRIGGERS
+-- Deben ejecutarse y crearse antes de la inserción de datos. Por eso decide dejarse en la creación de tablas.
+
+-- Medida de seguridad. Funciona como un reset en que caso que la sesión haya quedado atascado.
+-- Esto y las líneas de abajo se implementan en caso de ejecutar parcialmente un bloque, que fue lo que nos pasó.
+DELIMITER ;
+
+-- 1. Se borran TRIGGERS anteriores en caso de error.
+DROP TRIGGER IF EXISTS trg_usuario_check_letras_INSERT;
+DROP TRIGGER IF EXISTS trg_usuario_check_letras_UPDATE;
+
+-- 2. Cambiamos el delimitador para crear los nuevos
+DELIMITER //
+
+-- CREACIÓN DEL TRIGGER DE INSERT 
+CREATE TRIGGER trg_usuario_check_letras_INSERT
+BEFORE INSERT ON usuario
+FOR EACH ROW
+BEGIN
+    -- Revisamos si el NUEVO nombre NO CUMPLE la regla 
+    IF (NEW.nombre NOT REGEXP '^[A-Za-zñÑáéíóúÁÉÍÓÚ\s]+$') THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'Error (Trigger INSERT): El nombre solo puede contener letras y espacios.';
+    END IF;
+
+    -- Revisamos si el NUEVO apellido NO CUMPLE la regla 
+    IF (NEW.apellido NOT REGEXP '^[A-Za-zñÑáéíóúÁÉÍÓÚ\s]+$') THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'Error (Trigger INSERT): El apellido solo puede contener letras y espacios.';
+    END IF;
+END;
+//
+
+-- CREACIÓN DEL TRIGGER DE UPDATE
+CREATE TRIGGER trg_usuario_check_letras_UPDATE
+BEFORE UPDATE ON usuario
+FOR EACH ROW
+BEGIN
+    IF (NEW.nombre NOT REGEXP '^[A-Za-zñÑáéíóúÁÉÍÓÚ\s]+$') THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'Error (Trigger UPDATE): El nombre solo puede contener letras y espacios.';
+    END IF;
+
+    IF (NEW.apellido NOT REGEXP '^[A-Za-zñÑáéíóúÁÉÍÓÚ\s]+$') THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'Error (Trigger UPDATE): El apellido solo puede contener letras y espacios.';
+    END IF;
+END;
+//
+
+-- 3. Volvemos el delimitador a la normalidad
+DELIMITER ;
