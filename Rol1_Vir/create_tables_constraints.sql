@@ -14,7 +14,7 @@ create table usuario(
 	username VARCHAR(30) NOT NULL UNIQUE,
 	email VARCHAR(120) NOT NULL UNIQUE,
     
-    -- se elimino fecha de_nacimiento ya que el CHECH (fecha_nacimiento < CURRENT TIME) generaba un error
+    -- se elimino fecha de_nacimiento ya que el CHECK (fecha_nacimiento < CURRENT TIME) generaba un error
     
 	activo BOOLEAN NOT NULL DEFAULT TRUE, -- por defecto está activo
     -- la fecha y hora se establece automáticamente al crear el usuario
